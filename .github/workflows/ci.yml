@@ -51,9 +51,9 @@ jobs:
           name: archive-${{ matrix.runs-on }}
           path: |
             build/default/*.tar.gz
-            
+
   build-docker:
-    needs: build
+    needs: build-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
