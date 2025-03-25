@@ -62,7 +62,10 @@ jobs:
 
   build-docker:
     needs: build-test
+    if: "!contains(github.event.head_commit.message, 'skip docker')"
     runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -99,8 +102,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-apptainer:
+    needs: build-docker
     runs-on: self-apptainer
-#    needs: build-docker
+    if: "!contains(github.event.head_commit.message, 'skip apptainer')"
     env:
       apptainer: /opt/apptainer/v1.4.0/apptainer/bin/apptainer
     steps:
@@ -116,11 +120,15 @@ jobs:
         run: |
           # Pull the Docker image and convert it to a Singularity Image Format (SIF) file.
           sif=$( basename ${{ github.repository }}.sif )
-          ${{ env.apptainer }} pull -F $sif docker://ghcr.io/${{ github.repository }}:2.0
+          ${{ env.apptainer }} pull -F $sif docker://${{ needs.build-docker.outputs.tags }}
           ${{ env.apptainer }} inspect $sif
 
       - name: Upload Apptainer SIF to GitHub Container Registry
         run: |
           # Push the SIF file to the GitHub Container Registry.
           sif=$( basename ${{ github.repository }}.sif )
-          ${{ env.apptainer }} push $sif oras://ghcr.io/${{ github.repository }}:2.0-sif
+          ${{ env.apptainer }} push $sif oras://ghcr.io/${{ needs.build-docker.outputs.tags }}-sif
+
+      - name: Deploy
+        run: |
+          gh workflow -R coe-hidalgo2/202503-c3b-rvavrik run deploy.yml -r main -f image=${{ needs.build-docker.outputs.tags }}-sif

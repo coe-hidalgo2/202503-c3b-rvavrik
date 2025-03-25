@@ -1,8 +1,9 @@
 # get sif filename from command line
 SIF=${1:-c3b-template.sif}
+NPS=${2:-4}
 WAIT=10
 # Submit the job and capture the sbatch output.
-job_output=$(sbatch job_myapp.sh $SIF)
+job_output=$(sbatch job_myapp.sh $SIF ${NPS})
 echo "sbatch output: $job_output"
 
 # Extract the job ID (assumes output: "Submitted batch job <jobid>")
